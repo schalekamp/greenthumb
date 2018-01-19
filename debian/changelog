@@ -1,3 +1,9 @@
+greenthumb (0.4.1+artful) artful; urgency=medium
+
+  * Rebuild for new version of greentop.
+
+ -- Colin Doig <colindoig@gmail.com>  Fri, 19 Jan 2018 20:29:13 +1300
+
 greenthumb (0.4.0+artful) artful; urgency=medium
 
   * Initial release.
