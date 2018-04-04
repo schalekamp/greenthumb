@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Colin Doig.  Distributed under the MIT license.
+ * Copyright 2018 Colin Doig.  Distributed under the MIT license.
  */
 #include <wx/wx.h>
 #include <wx/sizer.h>
@@ -71,6 +71,14 @@ void MarketPanel::OnMarketUpdated(const wxThreadEvent& event) {
 
     if (tempMarketBook.isValid()) {
         marketBook = tempMarketBook;
+
+        market.SetMarketBook(marketBook);
+
+        if (market.GetMarketCatalogue().getDescription().getBettingType() == greentop::MarketBettingType::ASIAN_HANDICAP_DOUBLE_LINE &&
+            !handicapPanel->IsShown()) {
+            handicapPanel->Show(true);
+            handicapPanel->AddPages(market.GetHandicapPages(), market.GetDefaultHandicapIndex());
+        }
 
         SyncRunnerRows();
 
@@ -164,7 +172,6 @@ void MarketPanel::SetMarket(const greentop::menu::Node& node) {
 }
 
 void MarketPanel::SetMarket(const entity::Market& market) {
-
     this->market = market;
     marketId = market.GetMarketCatalogue().getMarketId();
 
@@ -173,11 +180,6 @@ void MarketPanel::SetMarket(const entity::Market& market) {
 
     Bind(wxEVT_BUTTON, &MarketPanel::OnClick, this, wxID_ANY);
 
-    if (market.GetMarketCatalogue().getDescription().getBettingType() == greentop::MarketBettingType::ASIAN_HANDICAP_DOUBLE_LINE) {
-        handicapPanel->Show(true);
-    }
-
-
     currentOrdersDialog->SetMarket(market);
     wxString rules(market.GetMarketCatalogue().getDescription().getRules().c_str(), wxConvUTF8);
 
@@ -185,7 +187,6 @@ void MarketPanel::SetMarket(const entity::Market& market) {
 
     UpdateToolBar();
     UpdateMarketStatus();
-
 }
 
 void MarketPanel::UpdateMarketStatus() {
@@ -209,8 +210,8 @@ void MarketPanel::UpdateToolBar() {
 }
 
 void MarketPanel::SyncRunnerRows() {
-
     std::vector<greentop::Runner> runners = marketBook.getRunners();
+
 
     for (unsigned i = 0; i < runners.size(); ++i) {
         greentop::Runner runner = runners[i];
@@ -225,23 +226,14 @@ void MarketPanel::SyncRunnerRows() {
 
                 runnerRow->SetRunner(market, marketBook, runner);
                 runnerRow->SetProfit(profit);
-                // runnerRow->SetHandicap(handicapPanel->GetHandicap(runner.getSelectionId()));
             } else {
                 iter->second->SetRunner(market, marketBook, runner);
-            }
-
-            if (market.GetMarketCatalogue().getDescription().getBettingType() == greentop::MarketBettingType::ASIAN_HANDICAP_DOUBLE_LINE) {
-                greentop::Optional<double> runnerHandicap = runner.getHandicap();
-                if (runnerHandicap.isValid()) {
-                    handicapPanel->AddHandicap(runner.getSelectionId(), runnerHandicap.getValue());
-                }
             }
         }
     }
 
     // TODO - remove obsolete runnerrows
     GetParent()->FitInside();
-
 }
 
 void MarketPanel::OnPlaceBet(const wxThreadEvent& event) {
@@ -260,14 +252,18 @@ void MarketPanel::OnClick(const wxCommandEvent& event) {
         greentop::PlaceInstruction pi = button->GetPlaceInstruction();
 
         if (market.HasRunner(pi.getSelectionId())) {
-            greentop::RunnerCatalog runner = market.GetRunner(pi.getSelectionId());
-            std::string placeBetTitle = pi.getSide().getValue() + " " + runner.getRunnerName();
 
-            dialog::PlaceBet* placeBet = new dialog::PlaceBet(this, wxID_ANY, placeBetTitle);
+            auto it = runnerRows.find(pi.getSelectionId());
+            if (it != runnerRows.end()) {
+                greentop::RunnerCatalog runner = market.GetRunner(pi.getSelectionId());
+                wxString placeBetTitle = pi.getSide().getValue() + " " + it->second->GetRunnerName();
 
-            placeBet->SetMarket(market, fullMarketName);
-            placeBet->SetPlaceInstruction(runner.getRunnerName(), pi);
-            placeBet->Show();
+                dialog::PlaceBet* placeBet = new dialog::PlaceBet(this, wxID_ANY, placeBetTitle);
+
+                placeBet->SetMarket(market, fullMarketName);
+                placeBet->SetPlaceInstruction(runner.getRunnerName(), pi);
+                placeBet->Show();
+            }
         }
     }
 }
@@ -296,7 +292,7 @@ void MarketPanel::ShowRules(const wxEvent& event) {
     rulesDialog->Show();
 }
 
-void MarketPanel::OnHandicapChanged(wxEvent& event) {
+void MarketPanel::OnHandicapChanged(const wxEvent& event) {
     if (market.GetMarketCatalogue().getDescription().getBettingType() == greentop::MarketBettingType::ASIAN_HANDICAP_DOUBLE_LINE) {
         for (const auto &it : runnerRows) {
             RunnerRow* runnerRow = it.second;
