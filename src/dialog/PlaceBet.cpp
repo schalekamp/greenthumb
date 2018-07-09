@@ -29,8 +29,9 @@ PlaceBet::PlaceBet(wxWindow *parent, wxWindowID id, const wxString &title,
     int borderFlags = wxTOP | wxRIGHT | wxLEFT;
     int columnOneWidth = 100;
     int columnTwoWidth = 200;
-    std::string currencySymbol = GetCurrencySymbol(
-        entity::Config::GetConfigValue<std::string>("accountCurrency", "?"));
+    wxString currencySymbol = GetCurrencySymbol(
+        entity::Config::GetConfigValue<wxString>("accountCurrency", "?")
+    );
     int defaultStake = entity::Config::GetConfigValue<int>("defaultStake", 100);
 
     wxBoxSizer* vbox = new wxBoxSizer(wxVERTICAL);
@@ -71,11 +72,10 @@ PlaceBet::PlaceBet(wxWindow *parent, wxWindowID id, const wxString &title,
     vbox->Add(hbox, 0, wxEXPAND | borderFlags, border);
 
     hbox = new wxBoxSizer(wxHORIZONTAL);
-    wxString wxCurrencySymbol(currencySymbol.c_str(), wxConvUTF8);
     wxStaticText* stakeLabel = new wxStaticText(
         this,
         wxID_ANY,
-        _("Stake (") + wxCurrencySymbol + _("):"),
+        _("Stake (") + currencySymbol + _("):"),
         wxDefaultPosition,
         wxSize(columnOneWidth, -1)
     );
@@ -123,7 +123,7 @@ PlaceBet::PlaceBet(wxWindow *parent, wxWindowID id, const wxString &title,
     wxStaticText* profitLabel = new wxStaticText(
         this,
         wxID_ANY,
-        _("Profit (") + wxCurrencySymbol + _("):"),
+        _("Profit (") + currencySymbol + _("):"),
         wxDefaultPosition,
         wxSize(columnOneWidth, -1)
     );
@@ -138,7 +138,7 @@ PlaceBet::PlaceBet(wxWindow *parent, wxWindowID id, const wxString &title,
     wxStaticText* liabilityLabel = new wxStaticText(
         this,
         wxID_ANY,
-        _("Liability (") + wxCurrencySymbol + _("):"),
+        _("Liability (") + currencySymbol + _("):"),
         wxDefaultPosition,
         wxSize(columnOneWidth, -1)
     );
@@ -187,7 +187,7 @@ void PlaceBet::SetPlaceInstruction(const std::string& runnerName, const greentop
         if (placeInstruction.getHandicap() > 0) {
             sign = "+";
         }
-        runner = runner + " " + sign + DoubleToString(placeInstruction.getHandicap(), 1);
+        runner = runner + " " + sign + wxString::Format(wxT("%.1f"), placeInstruction.getHandicap().getValue());
     }
 
     selection->SetLabel(runner);
